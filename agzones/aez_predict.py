@@ -125,12 +125,20 @@ for rcp in rcps:
             "tmax8c",
             "tmin12c",]
 
-        for cr in climate_rasters:
-            explanatory_rasters[cr] = fdir + cr + "/hdr.adf"
+        explanatory_rasters = []
+        for ef in explanatory_fields:
+            if ef in climate_rasters:
+                # swap out for future
+                explanatory_rasters.append(
+                    os.path.join(fdir, ef, "hdr.adf"))
+            else:
+                # use current/training
+                explanatory_rasters.append(
+                    os.path.join(tdir, ef, "hdr.adf"))
 
-        target_xs, raster_info = load_targets(explanatory_rasters, explanatory_fields)
+        target_xs, raster_info = load_targets(explanatory_rasters)
 
-        ###############################################################################
+        ########################################################################
         # Impute response rasters
         # default to standard naming convention for outputs
         # data gets dumped to an output directory
