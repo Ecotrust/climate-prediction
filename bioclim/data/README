@@ -1,0 +1,7 @@
+Data available on ford
+
+Copy
+  sftp://ubuntu@ford/storage/blm_climate_suitability/attenuated_abscence/data
+
+to
+  bioclim/data
