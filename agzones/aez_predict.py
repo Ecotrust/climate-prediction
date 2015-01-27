@@ -28,12 +28,13 @@ explanatory_fields = [
     "irr_lands",
     "gt_demc",
     "grwsnc",
-    "d2u2c",]
+    "d2u2c",
+    ]
 
-explanatory_rasters = [os.path.join(tdir, r, "hdr.adf")
+explanatory_rasters = [os.path.join(tdir, r + ".tif")
                        for r in explanatory_fields]
 
-response_raster = os.path.join(tdir, 'iso_zns3-27', 'hdr.adf')
+response_raster = os.path.join(tdir, 'iso_zns3-27.tif')
 
 # cache this so we can work with a consistent training set
 sfile = ".cache/selected.json"
@@ -45,7 +46,7 @@ except IOError:
     print "\trandom stratified sampling"
     selected = stratified_sample_raster(response_raster,
                                     target_sample_size=20,
-                                    min_sample_proportion=0.05)
+                                    min_sample_proportion=0.5)
     with open(sfile, 'w') as fh:
         fh.write(json.dumps(list(selected)))
 
@@ -86,15 +87,22 @@ try:
 except IOError:
     cv = 5
     scores = cross_validation.cross_val_score(rf, train_xs, train_y, cv=cv)
-    acc = "%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (cv, scores.mean() * 100, scores.std() * 200)
+    acc = "%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (
+        cv, scores.mean() * 100, scores.std() * 200)
     with open(cvfile, 'w') as fh:
         fh.write(acc)
 print acc
 
 ###############################################################################
 # Assess feature importance
-fimp = dict(zip([str(x) for x in explanatory_fields], rf.feature_importances_))
-pprint(fimp)
+featimp = sorted(zip([str(x) for x in explanatory_fields],
+           [round(x, 3)*100 for x in rf.feature_importances_]),
+       key=lambda tup: tup[1],
+       reverse=True)
+
+print "Feature importances:"
+for fi in featimp:
+    print "\t", fi[1], "% ", fi[0]
 
 ###############################################################################
 # Load the target/explanatory raster data
@@ -130,11 +138,11 @@ for rcp in rcps:
             if ef in climate_rasters:
                 # swap out for future
                 explanatory_rasters.append(
-                    os.path.join(fdir, ef, "hdr.adf"))
+                    os.path.join(fdir, ef + '.tif'))
             else:
                 # use current/training
                 explanatory_rasters.append(
-                    os.path.join(tdir, ef, "hdr.adf"))
+                    os.path.join(tdir, ef + '.tif'))
 
         target_xs, raster_info = load_targets(explanatory_rasters)
 
