@@ -8,6 +8,9 @@ from sklearn.ensemble import ExtraTreesClassifier
 from pprint import pprint
 import time
 
+import warnings
+warnings.filterwarnings("ignore")
+
 INPUTDIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "inputs")
 if not os.path.exists(".cache"):
     os.mkdir(".cache")
@@ -50,7 +53,7 @@ except IOError:
     with open(sfile, 'w') as fh:
         fh.write(json.dumps(list(selected)))
 
-print len(selected), "samples"
+print "\t", len(selected), "samples"
 
 ###############################################################################
 # Set up classifier
@@ -58,14 +61,15 @@ print len(selected), "samples"
 from sklearn.externals import joblib
 pfile = ".cache/cache_classifier.pkl"
 try:
-    print "Loading classifier;"
+    print "Create classifier"
     rf = joblib.load(pfile)
     print "\tUsing cached @ %s" % pfile
 except:
-    print "\ttraining classifier..."
+    print "\tLoading traing data..."
     train_xs, train_y = load_training_rasters(
         response_raster, explanatory_rasters, selected)
 
+    print "\tTraining classifier..."
     import time
     start = time.time()
 
@@ -74,7 +78,7 @@ except:
     # fit the classifier to the training data
     rf.fit(train_xs, train_y)
 
-    print "training time:", time.time() - start
+    print "\ttime:", time.time() - start, "seconds"
     joblib.dump(rf, pfile)
 
 ###############################################################################
@@ -85,9 +89,9 @@ cvfile = ".cache/cross_validation.txt"
 try:
     acc = open(cvfile).read()
 except IOError:
-    cv = 5
+    cv = 3
     scores = cross_validation.cross_val_score(rf, train_xs, train_y, cv=cv)
-    acc = "%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (
+    acc = "\t%d-fold Cross Validation Accuracy: %0.2f (+/- %0.2f)" % (
         cv, scores.mean() * 100, scores.std() * 200)
     with open(cvfile, 'w') as fh:
         fh.write(acc)
@@ -120,11 +124,11 @@ start = time.time()
 impute(target_xs, rf, raster_info, outdir="out_aezs_CURRENT",
        linechunk=250, class_prob=True, certainty=True)
 run_time = time.time() - start
-print run_time, "seconds"
+print "\t", round(run_time, 2) , "seconds"
 
 for rcp in rcps:
     for year in years:
-        print "Loading target explanatory raster data, swapping out for %s %s climate data" % (rcp, year)
+        print "Loading target explanatory raster data\n\tswapping out for %s %s climate data" % (rcp, year)
         fdir = os.path.join(INPUTDIR, "%s/%s/" % (rcp, year))
         climate_rasters = [
             "grwsnc",
@@ -150,9 +154,9 @@ for rcp in rcps:
         # Impute response rasters
         # default to standard naming convention for outputs
         # data gets dumped to an output directory
-        print "Imputing response rasters"
+        print "Imputing response rasters for %s %s" % (rcp, year)
         start = time.time()
         impute(target_xs, rf, raster_info, outdir="out_aezs_%s_%s" % (rcp, year),
                linechunk=250, class_prob=True, certainty=True)
         run_time = time.time() - start
-        print run_time, "seconds"
+        print "\t", round(run_time, 2) , "seconds"
